@@ -62,6 +62,8 @@ function equal_workload(data::donnees)
         @constraint(model, z[p] >= sum(x) - m)
         @constraint(model, z[p] >= m- sum(x))
     end
+
+    @objective(model, Min, sum(z))
     
     return model
 end
