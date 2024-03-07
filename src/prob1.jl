@@ -32,7 +32,7 @@ function init_prob1(data::donnees)
     #Constraint 5
     for i = 1:N
         for p = 1:P
-            @constraint(model, sum(data.Q[i,:] .* x[p,:]) <= sum(data.S[i,:] .* y[p,:]))
+            @constraint(model, sum(data.Q[i][o] * x[p,o] for o = 1:O) <= sum(data.S[i][r] * y[p,r] for r = 1:R))
         end
     end
     
