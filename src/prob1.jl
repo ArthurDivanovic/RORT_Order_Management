@@ -11,7 +11,7 @@ function init_prob1(data::donnees)
 
     #Constraint 1
     for r = 1:R
-        @constraint(model, sum(x[:,r]) <= 1)
+        @constraint(model, sum(y[:,r]) <= 1)
     end
 
     #Constraint 2
@@ -26,7 +26,7 @@ function init_prob1(data::donnees)
 
     #Constraint 4
     for p = 1:P
-        @constraint(model, sum(x[p,:]) <= data.Capa)
+        @constraint(model, sum(x[p,:]) <= data.Capa[p])
     end
 
     #Constraint 5
