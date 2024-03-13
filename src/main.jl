@@ -3,4 +3,4 @@ using JuMP
 
 include("lecture.jl")
 
-include("prob1.jl")
+include("prob1/prob1.jl")

@@ -40,3 +40,4 @@ function init_prob1(data::donnees)
 end
 
 include("objectives.jl")
+include("dantzigwolfe.jl")
