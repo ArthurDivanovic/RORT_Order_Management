@@ -11,13 +11,14 @@ mutable struct donnees
   FO::Vector{Int} # first orders prioritaires
   SO::Vector{Int} # second orders moins prioritaires
 
-  function donnees(N,R,O,RS)
+  function donnees(N,R,O,RS,P,Capa,FO,SO)
     this=new()
     this.N=N
     this.R=R
     this.O=O
     this.RS=RS
-    this.P=0
+    this.P=P
+    
     # init matrice S
     this.S=[] # vide
     for i in 1:N 
@@ -39,18 +40,18 @@ mutable struct donnees
       end
     end
     # init matrice Capacite des pickers
-    this.Capa=[] # vide
+    this.Capa=Capa 
     # init matrice FO vide
-    this.FO=[]
+    this.FO=FO
     # init matrice SO vide
-    this.SO=[]
+    this.SO=SO
     
     return this
   end
 end # fin de la struct donnees
 
 
-function parseInstance(filepath::String)::donnees
+function parseInstance(filepath::String, P::Int, Capa::Vector{Int}, FO::Vector{Int}, SO::Vector{Int})::donnees
 
   lines = readlines(filepath) 
   line = lines[1]
@@ -78,7 +79,7 @@ function parseInstance(filepath::String)::donnees
   RS = parse(Int64, line_decompose[2])
   println("nbre shelves par rack ",RS)
 
-  Data = donnees(N,R,O,RS)
+  Data = donnees(N,R,O,RS,P,Capa,FO,SO)
   println(Data.N," ",Data.R," ",Data.O," ",Data.RS)
   
   for r in 1:R # parcours les racks

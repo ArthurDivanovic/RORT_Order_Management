@@ -20,30 +20,12 @@ function linear_combination(data::donnees, alpha::Float64)
 end
 
 function lexicographic(data::donnees)
-    #First optimization
-    model1, x, y = init_prob1(data)
+    model, x, y = init_prob1(data)
 
-    @objective(model, Min, sum(y))
+    S = length(data.SO)
 
-    optimize!(model1)
-
-    feasibleSolutionFound = primal_status(model1) == MOI.FEASIBLE_POINT
-    isOptimal = termination_status(model1) == MOI.OPTIMAL
-
-    if feasibleSolutionFound && isOptimal
-        S_opt = JuMP.objective_value(model1)
-    end
-
-
-    #Second optimization
-    model2, x, y = init_prob1(data)
-
-    #Constraint 6
-    @constraint(model2, sum(y) >= S_opt)
-
-    @objective(model, Max, sum(x))
-
-    return model2
+    @objective(model, Min, (S+1) * sum(y) - sum(x))
+    return model
 end
 
 function equal_workload(data::donnees)
