@@ -59,68 +59,70 @@ function parseInstance(filepath::String, P::Int, Capa::Vector{Int}, FO::Vector{I
 
   # Number of products
   N = parse(Int64, line_decompose[2])
-  println("nbre produits total N ",N)
+  # println("nbre produits total N ",N)
 
   # Number of racks
   line = lines[2]
   line_decompose = split(line)
   R = parse(Int64, line_decompose[2])
-  println("nbre racks R ",R)
+  # println("nbre racks R ",R)
 
   # Number of orders
   line = lines[3]
   line_decompose = split(line)
   O = parse(Int64, line_decompose[2])
-  println("nbre ordres O ",O)
+  # println("nbre ordres O ",O)
 
   # Number of shelves per rack
   line = lines[5]
   line_decompose = split(line)
   RS = parse(Int64, line_decompose[2])
-  println("nbre shelves par rack ",RS)
+  # println("nbre shelves par rack ",RS)
 
   Data = donnees(N,R,O,RS,P,Capa,FO,SO)
-  println(Data.N," ",Data.R," ",Data.O," ",Data.RS)
+  # println(Data.N," ",Data.R," ",Data.O," ",Data.RS)
   
-  for r in 1:R # parcours les racks
+  # for r in 1:R # parcours les racks
 
-    num_line=7+r
-    global line=lines[num_line]
-    global line_decompose=split(line)
-    print("\n rack ",r,"\n")
+  #   num_line=7+r
+  #   global line=lines[num_line]
+  #   global line_decompose=split(line)
+  #   # print("\n rack ",r,"\n")
 
-    for i in 1:RS # parcours les shelves 
+  #   for i in 1:RS # parcours les shelves 
 
-      num_prod=parse(Int64,line_decompose[2*i])
-      quantite=parse(Int64,line_decompose[1+2*i])
+  #     num_prod=parse(Int64,line_decompose[2*i])
+  #     quantite=parse(Int64,line_decompose[1+2*i])
 
-      print(num_prod," ",quantite," ")
-      # Attention les produits vont de 0 - N-1
-      Data.S[num_prod+1][r]=quantite
+  #     # print(num_prod," ",quantite," ")
+  #     # Attention les produits vont de 0 - N-1
+  #     Data.S[num_prod+1][r]=quantite
 
-    end
+  #   end
 
-  end
+  # end
 
-  for o in 1:O # parcours les ordres
+  # for o in 1:O # parcours les ordres
 
-    num_line=(7+R+2)+o
-    global line=lines[num_line]
-    global line_decompose=split(line)
+  #   num_line=(7+R+2)+o
+  #   global line=lines[num_line]
+  #   global line_decompose=split(line)
     
-    nbre_prod_inside_ordre=parse(Int64,line_decompose[2])
-    print("\n ordre ",o," ",nbre_prod_inside_ordre,"\n")
+  #   nbre_prod_inside_ordre=parse(Int64,line_decompose[2])
+  #   # print("\n ordre ",o," ",nbre_prod_inside_ordre,"\n")
 
-    for i in 1:nbre_prod_inside_ordre
+  #   for i in 1:nbre_prod_inside_ordre
 
-      num_prod=parse(Int64,line_decompose[2+i])
-      # Attention numero de produit vont de 0 - N-1
-      Data.Q[num_prod+1][o]+=1
-      println("num produit ", num_prod," ",Data.Q[num_prod+1][o])
+  #     num_prod=parse(Int64,line_decompose[2+i])
+  #     # Attention numero de produit vont de 0 - N-1
+  #     Data.Q[num_prod+1][o]+=1
+  #     # println("num produit ", num_prod," ",Data.Q[num_prod+1][o])
 
-    end
-
-  end
+  #   end
+  
+  # end
+  Data.S = [[1,0,0], [0,1,0], [0,0,1]]
+  Data.Q = [[1,0], [0,1], [1,0]]
 
   return Data
 end
