@@ -21,10 +21,11 @@ end
 
 function lexicographic(data::donnees)
     model, x, y = init_prob1(data)
+    set_silent(model)
 
     S = length(data.SO)
 
-    @objective(model, Min, (S+1) * sum(y) - sum(x))
+    @objective(model, Min, (S+1) * sum(y) - sum(sum(x[p,o] for p = 1:data.P) for o in data.SO))
     return model
 end
 
