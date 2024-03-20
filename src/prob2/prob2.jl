@@ -26,13 +26,16 @@ function prob2(data::donnees, O_p::Vector{Int}, R_p::Vector{Int})
     set_silent(model)
 
     @variable(model, a[1:O,1:T,1:N] >= 0)
-    @variable(model, b[1:T, 1:R] >= 0, binary=true)
-    @variable(model, z[1:O,1:T] >= 0, binary=true)
+    @variable(model, b[1:T,1:R] >= 0, binary=true)
+
+    @variable(model, d[1:O,1:T] >= 0, binary=true)
+    @variable(model, f[1:O,1:T] >= 0, binary=true)
+
     @variable(model, u >= 0)
 
     #Constraint 16
     for t = 1:T
-        @constraint(model, c16, u >= sum(z[:,t]))
+        @constraint(model, u >= sum(f[:,t:end]) + sum(d[:,1:t]) - O)
     end
 
     #Constraint 17
@@ -53,8 +56,8 @@ function prob2(data::donnees, O_p::Vector{Int}, R_p::Vector{Int})
     for o = 1:O
         M = sum(Q[i][o] for i = 1:N)
         for t = 1:T
-            @constraint(model, z[o,t] <= sum(a[o,t:end,:]))
-            @constraint(model, M * z[o,t] >= sum(a[o,1:t,:]))
+            @constraint(model, M * f[o,t] <= M - sum(a[o,t+1:end,:]))
+            @constraint(model, M * d[o,t] <= sum(a[o,t:end,:]))
         end
     end
 
@@ -68,11 +71,17 @@ function prob2(data::donnees, O_p::Vector{Int}, R_p::Vector{Int})
         @constraint(model, sum(b[t,:]) == 1)
     end
 
+    #Constraint 23 / 24
+    for o = 1:O
+        @constraint(model, sum(d[o,:]) == 1)
+        @constraint(model, sum(f[o,:]) == 1)
+    end
+
     @objective(model, Min, u)
 
     optimize!(model)
+
     obj = value(u)
 
-    
-    return value.(z), value.(a), value.(b), obj
+    return value.(d), value.(f), value.(a), value.(b), obj
 end
