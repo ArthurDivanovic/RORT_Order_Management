@@ -1,4 +1,4 @@
-function prob2(data::donnees, O_p::Vector{Int}, R_p::Vector{Int})
+function prob2(data::donnees, O_p::Vector{Int}, R_p::Vector{Int}, time_limit=nothing)
     N = data.N 
     R = length(R_p)
     O = length(O_p)
@@ -24,6 +24,10 @@ function prob2(data::donnees, O_p::Vector{Int}, R_p::Vector{Int})
 
     model = Model(CPLEX.Optimizer)
     set_silent(model)
+
+    if !isnothing(time_limit)
+        set_time_limit_sec(model, time_limit)
+    end
 
     @variable(model, a[1:O,1:T,1:N] >= 0)
     @variable(model, b[1:T,1:R] >= 0, binary=true)
@@ -83,5 +87,7 @@ function prob2(data::donnees, O_p::Vector{Int}, R_p::Vector{Int})
 
     obj = value(u)
 
-    return value.(d), value.(f), value.(a), value.(b), obj
+    LB = JuMP.objective_bound(model)
+
+    return value.(d), value.(f), value.(a), value.(b), obj, LB
 end

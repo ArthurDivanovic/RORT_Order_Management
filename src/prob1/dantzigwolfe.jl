@@ -1,4 +1,4 @@
-function simple_decomposition(data::donnees)
+function simple_decomposition(data::donnees, time_limit=nothing)
     X = Matrix{Int}[]
     Y = Matrix{Int}[]
 
@@ -12,11 +12,19 @@ function simple_decomposition(data::donnees)
     lambda1 = 1
     lambda2 = 1
 
-    while delta1 < -1e-6 || delta2 < -1e-6
+    resolution_time = 0.0
+    LB = nothing
+    UB = nothing
 
-        lambda1, lambda2, eta, alpha = master_problem(data, X, Y)
+    while (delta1 < -1e-6 || delta2 < -1e-6) && (isnothing(time_limit) || time_limit > resolution_time)
+
+        start_time = time()
+
+        lambda1, lambda2, eta, alpha, UB = master_problem(data, X, Y)
 
         x, y, delta1, delta2 = subproblems(data, eta, alpha)
+
+        LB = delta1 + delta2 + sum(eta)
 
         if delta1 < -1e-6
             push!(X, x)
@@ -25,19 +33,19 @@ function simple_decomposition(data::donnees)
         if delta2 < -1e-6
             push!(Y, y)
         end
-
-        # println("delta1 = ", delta1)
-        # println("delta2 = ", delta2)
-
+        
+        resolution_time += time() - start_time
     end
     
+    nb_col = length(X) + length(Y)
+
     S = length(data.SO)
 
     x_opt = sum(value.(lambda1) .* X, dims=1)[1]
     y_opt = sum(value.(lambda2) .* Y, dims=1)[1]
 
     obj = (S+1) * sum(y_opt) - sum(sum(x_opt[p,o] for p = 1:P) for o in SO)
-    return x_opt, y_opt, obj
+    return x_opt, y_opt, obj, nb_col, LB
 end
 
 
@@ -84,12 +92,12 @@ function master_problem(data::donnees, X::Vector{Matrix{Int}}, Y::Vector{Matrix{
     @objective(model, Min, (S+1) * sum(lambda2[l] * sum(Y[l]) for l = 1:L) - sum(lambda1[k] * sum(sum(X[k][p,o] for p = 1:P) for o in data.SO) for k = 1:K))
     
     optimize!(model)
-    # println("Master problem :", JuMP.objective_value(model))
+    UB = JuMP.objective_value(model)
     
     alpha = dual.(a)
     eta = dual.([e1,e2])
           
-    return lambda1, lambda2, eta, alpha
+    return lambda1, lambda2, eta, alpha, UB
 
 end
 

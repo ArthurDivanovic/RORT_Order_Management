@@ -26,7 +26,7 @@ function lexicographic(data::donnees)
     S = length(data.SO)
 
     @objective(model, Min, (S+1) * sum(y) - sum(sum(x[p,o] for p = 1:data.P) for o in data.SO))
-    return model
+    return model, x, y
 end
 
 function equal_workload(data::donnees)
