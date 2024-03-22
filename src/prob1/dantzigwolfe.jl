@@ -45,7 +45,7 @@ function simple_decomposition(data::donnees, time_limit=nothing)
     y_opt = sum(value.(lambda2) .* Y, dims=1)[1]
 
     obj = (S+1) * sum(y_opt) - sum(sum(x_opt[p,o] for p = 1:P) for o in SO)
-    return x_opt, y_opt, obj, nb_col, LB
+    return x_opt, y_opt, obj, nb_col, LB, X, Y
 end
 
 
@@ -62,7 +62,7 @@ function first_solution(data::donnees)
 end 
 
 
-function master_problem(data::donnees, X::Vector{Matrix{Int}}, Y::Vector{Matrix{Int}})
+function master_problem(data::donnees, X::Vector{Matrix{Int}}, Y::Vector{Matrix{Int}}, binary=false::Bool)
 
     N = data.N 
     R = data.R
@@ -75,18 +75,17 @@ function master_problem(data::donnees, X::Vector{Matrix{Int}}, Y::Vector{Matrix{
     model = Model(CPLEX.Optimizer)
     set_silent(model)
 
-    @variable(model, lambda1[1:K] >= 0)
-    @variable(model, lambda2[1:L] >= 0)
+    @variable(model, lambda1[1:K] >= 0, binary=binary)
+    @variable(model, lambda2[1:L] >= 0, binary=binary)
 
     #Constraint 5
     @constraint(model, a[p=1:P,i=1:N], sum(lambda2[l] * sum(data.S[i][r] * Y[l][p,r] for r = 1:R) for l = 1:L) - sum(lambda1[k] * sum(data.Q[i][o] * X[k][p,o] for o = 1:O) for k = 1:K) >= 0)
     
-
     #Convexity constraints
     @constraint(model, e1, sum(lambda1[k] for k = 1:K) == 1)
     @constraint(model, e2, sum(lambda2[l] for l = 1:L) == 1)
 
-
+    
     S = length(data.SO) 
     # @objective(model, Min, (S+1) * sum(lambda2[l] * sum(Y[l]) for l = 1:L) - sum(lambda1[k] * sum(X[k]) for k = 1:K))
     @objective(model, Min, (S+1) * sum(lambda2[l] * sum(Y[l]) for l = 1:L) - sum(lambda1[k] * sum(sum(X[k][p,o] for p = 1:P) for o in data.SO) for k = 1:K))
@@ -94,8 +93,12 @@ function master_problem(data::donnees, X::Vector{Matrix{Int}}, Y::Vector{Matrix{
     optimize!(model)
     UB = JuMP.objective_value(model)
     
-    alpha = dual.(a)
-    eta = dual.([e1,e2])
+    alpha = nothing
+    eta = nothing
+    if !binary
+        alpha = dual.(a)
+        eta = dual.([e1,e2])
+    end
           
     return lambda1, lambda2, eta, alpha, UB
 
