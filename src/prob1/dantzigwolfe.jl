@@ -36,11 +36,6 @@ function simple_decomposition(data::donnees, time_limit=nothing)
         if delta2 < -1e-6
             push!(Y, y)
         end
-
-        # if delta1 < -1e-6 || delta2 < -1e-6
-        #     push!(X, x)
-        #     push!(Y, y)
-        # end
         
         resolution_time += time() - start_time
 
@@ -98,16 +93,10 @@ function master_problem(data::donnees, X::Vector{Matrix{Int}}, Y::Vector{Matrix{
     @variable(model, lambda1[1:K] >= 0, binary=binary)
     @variable(model, lambda2[1:L] >= 0, binary=binary)
 
-    # if binary 
-    #     @variable(model, v[1:P, 1:N], binary=true)
-    # end
 
     #Constraint 5
     if !binary
         @constraint(model, a[p=1:P,i=1:N], sum(lambda2[l] * sum(data.S[i][r] * Y[l][p,r] for r = 1:R) for l = 1:L) - sum(lambda1[k] * sum(data.Q[i][o] * X[k][p,o] for o = 1:O) for k = 1:K) >= 0)
-    # else
-    #     M = sum(sum(data.Q[i]) for i = 1:N)
-    #     @constraint(model, con[p=1:P,i=1:N], M * v[p,i] >= sum(lambda1[k] * sum(data.Q[i][o] * X[k][p,o] for o = 1:O) for k = 1:K) - sum(lambda2[l] * sum(data.S[i][r] * Y[l][p,r] for r = 1:R) for l = 1:L))
     end
 
     #Convexity constraints
@@ -119,8 +108,6 @@ function master_problem(data::donnees, X::Vector{Matrix{Int}}, Y::Vector{Matrix{
     if binary
         penalty = sum(sum(sum(lambda2[l] * sum(data.S[i][r] * Y[l][p,r] for r = 1:R) for l = 1:L) - sum(lambda1[k] * sum(data.Q[i][o] * X[k][p,o] for o = 1:O) for k = 1:K) for i = 1:N) for p = 1:P)
         @objective(model, Min, (S+1) * sum(lambda2[l] * sum(Y[l]) for l = 1:L) - sum(lambda1[k] * sum(sum(X[k][p,o] for p = 1:P) for o in data.SO) for k = 1:K) - (S + 10) * penalty)
-
-        # @objective(model, Min, (S+1) * sum(lambda2[l] * sum(Y[l]) for l = 1:L) - sum(lambda1[k] * sum(sum(X[k][p,o] for p = 1:P) for o in data.SO) for k = 1:K) + (S + 1) * sum(v))
     else
         @objective(model, Min, (S+1) * sum(lambda2[l] * sum(Y[l]) for l = 1:L) - sum(lambda1[k] * sum(sum(X[k][p,o] for p = 1:P) for o in data.SO) for k = 1:K))
     end
@@ -146,7 +133,6 @@ function master_problem(data::donnees, X::Vector{Matrix{Int}}, Y::Vector{Matrix{
             end
         end
         return lambda1, lambda2, eta, alpha, UB, nb_viol
-        # return lambda1, lambda2, eta, alpha, UB, value.(v)
     end
 
     return lambda1, lambda2, eta, alpha, UB
@@ -180,7 +166,6 @@ function subproblem1(data::donnees, eta::Vector{Float64}, alpha::Matrix{Float64}
         @constraint(model1, sum(x[p,:]) <= data.Capa[p])
     end
 
-    # @objective(model1, Min, -sum(x) - eta[1] + sum(sum(x[p,o] * sum(alpha[p,i] * data.Q[i][o] for i = 1:N) for p = 1:P) for o = 1:O))
     @objective(model1, Min, -sum(sum(x[p,o] for p = 1:P) for o in data.SO) - eta[1] + sum(sum(x[p,o] * sum(alpha[p,i] * data.Q[i][o] for i = 1:N) for p = 1:P) for o = 1:O))
 
     optimize!(model1)
@@ -224,8 +209,6 @@ function subproblems(data::donnees, eta::Vector{Float64}, alpha::Matrix{Float64}
     x, delta1 = subproblem1(data, eta, alpha)
 
     y, delta2 = subproblem2(data, eta, alpha)
-
-    # println("LB  : ", delta1 + sum(eta) + delta2)
 
     return  x, y, delta1, delta2
 end

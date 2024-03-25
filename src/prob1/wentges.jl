@@ -39,10 +39,6 @@ function simple_decomposition_wentges(data::donnees, wentges_coeff::Float64, tim
             eta_sep = (1-wentges_coeff) * eta .+ wentges_coeff * [tetha, tetha]
         end
 
-        # println("alpha : ", alpha)
-        # println("alpha_sep : ", alpha_sep)
-        # println("alpha_hat : ", alpha_hat)
-
         x, y, delta1, delta2 = subproblems(data, eta_sep, alpha_sep)
 
         if delta1 < -1e-6 
@@ -71,17 +67,10 @@ function simple_decomposition_wentges(data::donnees, wentges_coeff::Float64, tim
         end
         
         if delta1 >= -1e-6 && delta2 >= -1e-6
-        # if LB > tetha
             tetha = LB
             alpha_hat = alpha_sep
-            println("tetha : ", tetha)
         end
 
-        # println("LB : ", LB)
-        # println("UB : ", UB)
-        # println("delta1 : ", delta1)
-        # println("delta2 : ", delta2)
-        # println()
         
         resolution_time += time() - start_time
 
