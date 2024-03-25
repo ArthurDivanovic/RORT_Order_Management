@@ -16,6 +16,9 @@ function simple_decomposition(data::donnees, time_limit=nothing)
     LB = nothing
     UB = nothing
 
+    LBs = Float64[]
+    UBs = Float64[]
+
     while (delta1 < -1e-6 || delta2 < -1e-6) && (isnothing(time_limit) || time_limit > resolution_time)
 
         start_time = time()
@@ -26,15 +29,23 @@ function simple_decomposition(data::donnees, time_limit=nothing)
 
         LB = delta1 + delta2 + sum(eta)
 
-        if delta1 < -1e-6
+        if delta1 < -1e-6 
             push!(X, x)
         end
 
         if delta2 < -1e-6
             push!(Y, y)
         end
+
+        # if delta1 < -1e-6 || delta2 < -1e-6
+        #     push!(X, x)
+        #     push!(Y, y)
+        # end
         
         resolution_time += time() - start_time
+
+        push!(LBs, LB)
+        push!(UBs, UB)
     end
     
     nb_col = length(X) + length(Y)
@@ -45,7 +56,10 @@ function simple_decomposition(data::donnees, time_limit=nothing)
     y_opt = sum(value.(lambda2) .* Y, dims=1)[1]
 
     obj = (S+1) * sum(y_opt) - sum(sum(x_opt[p,o] for p = 1:P) for o in SO)
-    return x_opt, y_opt, obj, nb_col, LB, X, Y
+
+    LB = maximum(LBs)
+
+    return LB, obj, nb_col, X, Y, LBs, UBs
 end
 
 
@@ -59,6 +73,12 @@ function first_solution(data::donnees)
     optimize!(model)
 
     return value.(x), value.(y)
+    # x = zeros(Float64, data.P, data.O)
+    # x[1, :] = ones(Float64, data.O)
+    # y = zeros(Float64, data.P, data.O)
+    # y[1, :] = ones(Float64, data.R)
+
+    # return x,y
 end 
 
 
@@ -78,17 +98,33 @@ function master_problem(data::donnees, X::Vector{Matrix{Int}}, Y::Vector{Matrix{
     @variable(model, lambda1[1:K] >= 0, binary=binary)
     @variable(model, lambda2[1:L] >= 0, binary=binary)
 
+    # if binary 
+    #     @variable(model, v[1:P, 1:N], binary=true)
+    # end
+
     #Constraint 5
-    @constraint(model, a[p=1:P,i=1:N], sum(lambda2[l] * sum(data.S[i][r] * Y[l][p,r] for r = 1:R) for l = 1:L) - sum(lambda1[k] * sum(data.Q[i][o] * X[k][p,o] for o = 1:O) for k = 1:K) >= 0)
-    
+    if !binary
+        @constraint(model, a[p=1:P,i=1:N], sum(lambda2[l] * sum(data.S[i][r] * Y[l][p,r] for r = 1:R) for l = 1:L) - sum(lambda1[k] * sum(data.Q[i][o] * X[k][p,o] for o = 1:O) for k = 1:K) >= 0)
+    # else
+    #     M = sum(sum(data.Q[i]) for i = 1:N)
+    #     @constraint(model, con[p=1:P,i=1:N], M * v[p,i] >= sum(lambda1[k] * sum(data.Q[i][o] * X[k][p,o] for o = 1:O) for k = 1:K) - sum(lambda2[l] * sum(data.S[i][r] * Y[l][p,r] for r = 1:R) for l = 1:L))
+    end
+
     #Convexity constraints
     @constraint(model, e1, sum(lambda1[k] for k = 1:K) == 1)
     @constraint(model, e2, sum(lambda2[l] for l = 1:L) == 1)
 
-    
+
     S = length(data.SO) 
-    # @objective(model, Min, (S+1) * sum(lambda2[l] * sum(Y[l]) for l = 1:L) - sum(lambda1[k] * sum(X[k]) for k = 1:K))
-    @objective(model, Min, (S+1) * sum(lambda2[l] * sum(Y[l]) for l = 1:L) - sum(lambda1[k] * sum(sum(X[k][p,o] for p = 1:P) for o in data.SO) for k = 1:K))
+    if binary
+        penalty = sum(sum(sum(lambda2[l] * sum(data.S[i][r] * Y[l][p,r] for r = 1:R) for l = 1:L) - sum(lambda1[k] * sum(data.Q[i][o] * X[k][p,o] for o = 1:O) for k = 1:K) for i = 1:N) for p = 1:P)
+        @objective(model, Min, (S+1) * sum(lambda2[l] * sum(Y[l]) for l = 1:L) - sum(lambda1[k] * sum(sum(X[k][p,o] for p = 1:P) for o in data.SO) for k = 1:K) - (S + 10) * penalty)
+
+        # @objective(model, Min, (S+1) * sum(lambda2[l] * sum(Y[l]) for l = 1:L) - sum(lambda1[k] * sum(sum(X[k][p,o] for p = 1:P) for o in data.SO) for k = 1:K) + (S + 1) * sum(v))
+    else
+        @objective(model, Min, (S+1) * sum(lambda2[l] * sum(Y[l]) for l = 1:L) - sum(lambda1[k] * sum(sum(X[k][p,o] for p = 1:P) for o in data.SO) for k = 1:K))
+    end
+    
     
     optimize!(model)
     UB = JuMP.objective_value(model)
@@ -99,13 +135,25 @@ function master_problem(data::donnees, X::Vector{Matrix{Int}}, Y::Vector{Matrix{
         alpha = dual.(a)
         eta = dual.([e1,e2])
     end
-          
+
+    if binary 
+        nb_viol = 0
+        for p = 1:P
+            for i = 1:N
+                if sum(value(lambda2[l]) * sum(data.S[i][r] * Y[l][p,r] for r = 1:R) for l = 1:L) - sum(value(lambda1[k]) * sum(data.Q[i][o] * X[k][p,o] for o = 1:O) for k = 1:K) < -1e-6
+                    nb_viol += 1
+                end
+            end
+        end
+        return lambda1, lambda2, eta, alpha, UB, nb_viol
+        # return lambda1, lambda2, eta, alpha, UB, value.(v)
+    end
+
     return lambda1, lambda2, eta, alpha, UB
 
 end
 
-function subproblems(data::donnees, eta::Vector{Float64}, alpha::Matrix{Float64})
-
+function subproblem1(data::donnees, eta::Vector{Float64}, alpha::Matrix{Float64})
     N = data.N 
     R = data.R
     O = data.O
@@ -138,6 +186,18 @@ function subproblems(data::donnees, eta::Vector{Float64}, alpha::Matrix{Float64}
     optimize!(model1)
     delta1 = JuMP.objective_value(model1)
 
+    x = value.(x)
+
+    return x, delta1
+end
+
+
+function subproblem2(data::donnees, eta::Vector{Float64}, alpha::Matrix{Float64})
+    N = data.N 
+    R = data.R
+    O = data.O
+    P = data.P
+    
     ### Second SubProblem
     model2 = Model(CPLEX.Optimizer)
     set_silent(model2)
@@ -154,11 +214,18 @@ function subproblems(data::donnees, eta::Vector{Float64}, alpha::Matrix{Float64}
     
     optimize!(model2)
     delta2 = JuMP.objective_value(model2)
+    
+    y = value.(y)
+
+    return y, delta2
+end
+
+function subproblems(data::donnees, eta::Vector{Float64}, alpha::Matrix{Float64})
+    x, delta1 = subproblem1(data, eta, alpha)
+
+    y, delta2 = subproblem2(data, eta, alpha)
 
     # println("LB  : ", delta1 + sum(eta) + delta2)
-
-    x = value.(x)
-    y = value.(y)
 
     return  x, y, delta1, delta2
 end

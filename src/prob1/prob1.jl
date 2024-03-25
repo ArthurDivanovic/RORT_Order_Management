@@ -41,3 +41,4 @@ end
 
 include("objectives.jl")
 include("dantzigwolfe.jl")
+include("wentges.jl")
