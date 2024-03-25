@@ -20,6 +20,13 @@ The repository is organized into two main directories:
 - **src**: Contains essential solving functions.
 - **data**: Houses instances of the OM problem.
 
+In addition, four test scripts are provided:
+- `main_PLNE1.jl`: solving the MILP formulation of the allocation problem.
+- `main_DW1.jl`: solving the allocation problem with the Dantzig-Wolfe decomposition.
+- `main_Wentges1.jl`: solving the allocation problem with the Dantzig-Wolfe decomposition and the Wentges perturbation method.
+- `main_PLNE2.jl`: solving the MILP formulation of the scheduling problem.
+
+
 ## 2. Installation
 
 This repository can be cloned directly from this webpage.
@@ -63,13 +70,26 @@ include("src/main.jl")
 1. Instance
 
 ```julia
-P = 5
-Capa = 12 * ones(Int, P)
-F = 20
-O = 100
+P = 2
+Cp = 12
+F = 6 #FO length
+
+N = 10
+R = 10
+O = 10
+RS = 7
+```
+
+2. Parsing
+```julia
+begin_path = "data/Data_test_"
+filepath = begin_path * "N$(N)_R$(R)_O$(O)_RS$(RS).txt"
+
+Capa = Cp * ones(Int, P)
 FO = collect(1:F)
 SO = collect(F+1:O)
-filepath = "data/instance_N100_R100_O100_RS25.txt"
+S = length(data.SO) 
+
 data = parseInstance(filepath, P, Capa, FO, SO)
 ```
 
@@ -93,9 +113,15 @@ if !isnothing(time_limit)
 end
 ```
 
-5.Launch the resolution
+5. Launch the resolution
 ```julia
 optimize!(model)
+```
+
+5. Rcover Solution
+```julia
+x = value.(x)
+y = value.(y)
 ```
 
 
