@@ -40,6 +40,7 @@ The remainder of the directory is subdivided into two subdirectories:
 - `prob1.jl`: Defines the MILP problem associated to the order allocation problem. Only the objective function is not provided. This is covered in the file below.
 - `objectives.jl`: Gathers a coollection of functions that are associated to an objective. When one of these functions is called, it initiates a model of the problem thanks to the functions of `prob1.jl`. Then, the objective function is specified. The complete model and it's variables are finally returned.
 - `dantzigwolfe.jl`: Gathers the functions required to solve the Dantzig Wolfe "simple decomposition" of the order allocation problem.
+- `wentges.jl`: Implements the Wentges perturbation method for the Dantzig Wolfe decomposition.
 
 #### 3.1.b prob2 - Order Scheduling
 
