@@ -46,10 +46,6 @@ println("Objective Master Problem: ", obj)
 println("Time : ", end_time)
 println("Column number : ", nb_col)
 
-# println()
-# println("UBs = $UBs")
-# println("LBs = $LBs")
-# println("filename = \"$(split(filepath, "/")[2])\"")
 
 lambda1, lambda2, eta, alpha, UB, v = master_problem(data, X, Y, true)
 x = sum(value.(lambda1) .* X, dims=1)[1]
